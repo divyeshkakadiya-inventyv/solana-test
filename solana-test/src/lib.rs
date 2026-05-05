@@ -13,7 +13,8 @@ pub enum CustomInstruction {
     Intialize,
     Increment,
     Decrement,
-    Reset
+    Reset,
+    TransferAuthority,
 }
 
 impl CustomInstruction {
@@ -23,6 +24,7 @@ impl CustomInstruction {
             1 => Ok(CustomInstruction::Increment),
             2 => Ok(CustomInstruction::Decrement),
             3 => Ok(CustomInstruction::Reset),
+            4 => Ok(CustomInstruction::TransferAuthority),
             _ => Err(ProgramError::InvalidInstructionData),
         }
     }
@@ -60,23 +62,22 @@ pub fn process_intruction(
 
     let mut data = counter_account.try_borrow_mut_data()?;
 
-    
     match instruction {
         CustomInstruction::Intialize => {
             if data.len() > 0 && data[0] != 0 {
                 return Err(ProgramError::AccountAlreadyInitialized);
             }
-            
-            let counter = Counter{
-                authority : *authority_account.key,
-                value : 0,
+
+            let counter = Counter {
+                authority: *authority_account.key,
+                value: 0,
             };
-            
+
             counter.serialize(&mut *data)?;
         }
         CustomInstruction::Increment | CustomInstruction::Decrement => {
             let mut counter = Counter::try_from_slice(&data)?;
-            
+
             if !authority_account.is_signer {
                 return Err(ProgramError::MissingRequiredSignature);
             }
@@ -88,7 +89,7 @@ pub fn process_intruction(
             match instruction {
                 CustomInstruction::Increment => counter.value += 1,
                 CustomInstruction::Decrement => counter.value -= 1,
-                _ => {},
+                _ => {}
             }
 
             counter.serialize(&mut *data)?;
@@ -106,8 +107,27 @@ pub fn process_intruction(
             counter.value = 0;
             counter.serialize(&mut *data)?;
         }
-    }
+        CustomInstruction::TransferAuthority => {
+            let mut counter = Counter::try_from_slice(&data)?;
 
+            if !authority_account.is_signer {
+                return Err(ProgramError::MissingRequiredSignature);
+            }
+
+            if counter.authority != *authority_account.key {
+                return Err(ProgramError::IllegalOwner);
+            }
+
+            let new_authority_account = next_account_info(accounts_iter)?;
+            
+            if !new_authority_account.is_signer {
+                return Err(ProgramError::MissingRequiredSignature);
+            }   
+
+            counter.authority = *new_authority_account.key;
+            counter.serialize(&mut *data)?;
+        }
+    }
 
     Ok(())
 }
