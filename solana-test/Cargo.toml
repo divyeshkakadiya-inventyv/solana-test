@@ -9,3 +9,4 @@ crate-type = ["cdylib" , "lib"]
 [dependencies]
 borsh = "1.6.1"
 solana-program = { version = "4.0.0", features = ["dev-context-only-utils", "frozen-abi"] }
+solana-system-interface = "1"

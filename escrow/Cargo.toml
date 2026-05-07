@@ -1,0 +1,12 @@
+[package]
+name = "escrow"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib" , "lib"]
+
+[dependencies]
+borsh = "1.6.1"
+solana-program = { version = "4.0.0", features = ["dev-context-only-utils" , "frozen-abi"] }
+solana-system-interface = { version = "3.2.0", features = ["bincode"] }
